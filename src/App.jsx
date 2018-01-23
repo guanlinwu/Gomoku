@@ -3,7 +3,10 @@ import logo from './logo.svg';
 import music from './combo.mp3';
 import './App.css';
 import Square from './components/Square';
-// import Modal from './components/Modal';
+import Modal from './components/Modal';
+import * as io from 'socket.io-client';
+
+let socket = io('http://localhost:3002/');
 
 class App extends Component {
     constructor(props) {
@@ -12,26 +15,46 @@ class App extends Component {
             lineNum: 15,
             isWin: false,
             chessColor: 2,//1 代表白棋， 2 代表黑棋
+            isBalck: null, //是否是黑棋
+            isBalckTurn: true,//是否轮到黑棋玩了
             board: {}
         };
 
         this.playChess = this.playChess.bind(this);
         this.getPosDec = this.getPosDec.bind(this);
         this.checkWinner = this.checkWinner.bind(this);
+        this.setChess = this.setChess.bind(this);
         this.reStart = this.reStart.bind(this);
+    }
+
+    componentWillMount() {
+        socket.emit('login', { 'userName': new Date().getTime().toString() });
+        socket.on('role',  (data) => {
+            console.log('role ', data)
+            if (data.isBalck !== null) {
+                this.setState({
+                    isBalck: data.isBalck
+                });
+            }
+        }).on('restart', () => {
+            this.setState(
+                {
+                    lineNum: 15,
+                    isWin: false,
+                    chessColor: 2,//1 代表白棋， 2 代表黑棋
+                    isBalckTurn: true,//是否轮到黑棋玩了
+                    board: {}
+                }
+            );
+        })
     }
 
     componentDidMount() {
         this.music = document.getElementById('music');
-    }
-
-    componentDidUpdate() {
-        console.log(this.state)
-        if (this.state.isWin) {
-            setTimeout(()=> {
-                alert('winner is ' + this.state.isWin);
-            }, 500);
-        }
+        socket.on('play chess', (data) => {
+            console.log('play chess ', data)
+            this.setChess(data.x, data.y, data.chessColor);
+        })
     }
 
     getPosDec(x, y) {
@@ -45,24 +68,39 @@ class App extends Component {
      * @memberof App
      */
     playChess(x, y) {
+        if (this.state.isBalck == this.state.isBalckTurn) {
+            this.music.play();
+            socket.emit('play chess', {
+                x,
+                y,
+                isBalckTurn: !this.state.isBalckTurn,
+                chessColor: this.state.chessColor
+            })
+        }
+    }
+
+    setChess(x, y, chessColor) {
         let board = { ...this.state.board },
-            posDec = this.getPosDec(x, y),
-            chessColor = 3 - this.state.chessColor;
+            posDec = this.getPosDec(x, y);
+
         board[posDec] = chessColor;
 
-        this.music.play();
         this.setState({
-            chessColor,
+            chessColor: 3 - this.state.chessColor,
+            isBalckTurn: !this.state.isBalckTurn,
             board: { ...board }
         });
 
         let winner = this.checkWinner(x, y, board);
         if (winner) {
-            this.setState({
-                isWin: winner
-            });
+            setTimeout(()=> {
+                this.setState({
+                    isWin: winner
+                });
+            }, 500);
         }
     }
+
 
     /**
      * 判断输赢
@@ -128,15 +166,9 @@ class App extends Component {
     }
 
     reStart() {
-        this.setState(
-            {
-                lineNum: 15,
-                isWin: false,
-                chessColor: 2,//1 代表白棋， 2 代表黑棋
-                board: {}
-            }
-        );
-
+        if (this.state.isWin) {
+            socket.emit('restart', { 'restartTime': new Date().getTime().toString() });
+        }
     }
 
     render() {
@@ -151,14 +183,20 @@ class App extends Component {
             <div className="App">
                 <header className="App-header">
                     <img src={logo} className="App-logo" alt="logo" />
+                    <p className="text">
+                        You: {this.state.isBalck ?  '黑棋' : '白棋'}
+                        <br/>
+                        轮到：{this.state.isBalckTurn ? '黑棋' : '白棋'}
+                    </p>
                 </header>
                 <div className="chess">
                     {squares}
                 </div>
                 <div className="btn-box">
-                    <a className="btn" href="javascript:;" onClick={this.reStart}>重新开始</a>
+                    <a className="btn" style={this.state.isWin ? {} : { background: '#ccc', color: '#eee', boxShadow: 'none'}} href="javascript:;" onClick={this.reStart}>重新开始</a>
                 </div>
                 <audio id="music" src={music} hidden></audio>
+                <Modal isWin={this.state.isWin} isBalck={this.state.isBalck}/>
             </div>
         );
     }

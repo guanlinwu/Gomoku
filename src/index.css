@@ -73,6 +73,7 @@ a {
     box-sizing:content-box;
     margin:0;
     padding:0;
+    -webkit-tap-highlight-color:transparent;
 }
 
 body {
@@ -82,4 +83,9 @@ body {
 }
 html {
     font-size: 26.66666vw;
+}
+@media screen and (min-width: 750px) {
+    html {
+        font-size: 14vw;
+    }
 }

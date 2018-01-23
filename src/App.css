@@ -15,7 +15,18 @@ html, body {
 }
 
 .App-header {
-  padding: 0.1rem;
+    position: relative;
+    padding: 0.1rem;
+}
+
+.App-header .text {
+    position: absolute;
+    top: 0.2rem;
+    left: 0.1rem;
+    color: #f8285e;
+    font-size: 0.16rem;
+    line-height: 0.2rem;
+    text-align: left;
 }
 
 @keyframes App-logo-spin {
@@ -33,9 +44,9 @@ html, body {
     padding: 0px;
     border-bottom: 0.01rem solid #ff88aa;
     border-right: 0.01rem solid #ff88aa;
-    box-shadow: 0 0 30px #ff88aa, -1px -1px 1px #f8285e inset;
+    box-shadow: 0.06rem 0.06rem 0 #ff88aa,-0.06rem -0.06rem 0 #ff88aa,0.06rem -0.06rem 0 #ff88aa,-0.06rem 0.06rem 0 0 #ff88aa, -1px -1px 1px #f8285e inset;
     background:#ff88aa;
-    border-radius: 4px;
+    border-radius: 2px;
     user-select: none;
     -webkit-tap-highlight-color: rgba(255,0,0,0);
 }
