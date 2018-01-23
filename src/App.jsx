@@ -29,8 +29,8 @@ class App extends Component {
         console.log(this.state)
         if (this.state.isWin) {
             setTimeout(()=> {
-                alert('winner is' + this.state.isWin);
-            }, 1000);
+                alert('winner is ' + this.state.isWin);
+            }, 500);
         }
     }
 
