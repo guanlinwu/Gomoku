@@ -1,0 +1,30 @@
+.square {
+    position: relative;
+    flex-grow: 1;
+    margin: 0;
+    width: 0.22rem;
+    height: 0.22rem;
+    box-shadow: 1px 1px 1px #f8285e inset;
+}
+
+.circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    top: 0;
+    left: 0;
+    transform: translate(-50%, -50%);
+    width: 0.18rem;
+    height: 0.18rem;
+    border-radius: 50%;
+}
+
+
+.circle.white {
+    background: #fff;
+    box-shadow: 0 0 3px #ccc, 0 -2px 2px #eee inset;
+}
+.circle.black {
+    background: #444;
+    box-shadow: 0 0 2px #444, 0 -2px 2px #000 inset;
+}
