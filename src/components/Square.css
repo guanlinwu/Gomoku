@@ -1,10 +1,38 @@
 .square {
     position: relative;
-    flex-grow: 1;
+    flex-grow: 0;
     margin: 0;
-    width: 0.22rem;
-    height: 0.22rem;
+    width: 24px;
+    height: 24px;
+    background:#ff88aa;
     box-shadow: 1px 1px 1px #f8285e inset;
+}
+
+
+
+.square:nth-child(15n+0) {
+    background: transparent;
+    border-left: 1px solid #f8285e;
+    box-shadow: none;
+}
+
+.square:nth-child(n + 211) {
+    background: transparent;
+    border-top: 1px solid #f8285e;
+    box-shadow: none;
+}
+
+.square:nth-child(225) {
+    border: none;
+}
+
+.square.e-move {
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: breath 1s ease-in infinite;
+    border:none;
+    box-shadow: none;
 }
 
 .circle {
@@ -14,17 +42,44 @@
     top: 0;
     left: 0;
     transform: translate(-50%, -50%);
-    width: 0.18rem;
-    height: 0.18rem;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
 }
 
-
-.circle.white {
+.square.white .circle {
     background: #fff;
     box-shadow: 0 0 3px #ccc, 0 -2px 2px #eee inset;
 }
-.circle.black {
+.square.black .circle {
     background: #444;
     box-shadow: 0 0 2px #444, 0 -2px 2px #000 inset;
+}
+
+.square.e-move .circle {
+    box-shadow: 0 0 3px #f8285e;
+}
+
+@keyframes breath {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@media screen and (max-width: 340px) {
+    .square {
+        width: 20px;
+        height: 20px;
+    }
+
+    .circle {
+        width: 18px;
+        height: 18px;
+    }
 }

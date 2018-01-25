@@ -1,6 +1,7 @@
 html, body {
     background-color: #ffabcd;
     padding-bottom: 0.2rem;
+    overflow: hidden;
 }
 
 .App {
@@ -36,19 +37,26 @@ html, body {
 
 .chess {
     position: relative;
+    left: 12px;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    width: 3.5rem;
+    width: 362px;
     margin:  0 auto;
     padding: 0px;
-    border-bottom: 0.01rem solid #ff88aa;
-    border-right: 0.01rem solid #ff88aa;
-    box-shadow: 0.06rem 0.06rem 0 #ff88aa,-0.06rem -0.06rem 0 #ff88aa,0.06rem -0.06rem 0 #ff88aa,-0.06rem 0.06rem 0 0 #ff88aa, -1px -1px 1px #f8285e inset;
-    background:#ff88aa;
+    /* border-bottom: 0.01rem solid #ff88aa; */
+    /* border-right: 0.01rem solid #ff88aa; */
+    /* box-shadow: 0.06rem 0.06rem 0 #ff88aa,-0.06rem -0.06rem 0 #ff88aa,0.06rem -0.06rem 0 #ff88aa,-0.06rem 0.06rem 0 0 #ff88aa, -1px -1px 1px #f8285e inset; */
     border-radius: 2px;
     user-select: none;
     -webkit-tap-highlight-color: rgba(255,0,0,0);
+}
+
+@media screen and (max-width: 340px) {
+    .chess {
+        left: 10px;
+        width: 302px;
+    }
 }
 
 
@@ -56,12 +64,13 @@ html, body {
 .btn-box {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-    align-content: center;
+    justify-content: space-around;
+    align-content: space-between;
     margin-top: 0.2rem;
 }
 
 .btn {
+    flex: 0 0 1rem;
     width: 1rem;
     height: 0.4rem;
     text-align: center;
