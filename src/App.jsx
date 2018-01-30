@@ -91,6 +91,7 @@ class App extends Component {
 
         socket.on('play chess', (data) => {
             console.log('play chess ', data)
+            this.music.play().then(() => { });
             data.x && data.y && this.setChess(data.x, data.y);
             this.state.isBalck !== null && this.stratTimer(data.timestamp);
         });
