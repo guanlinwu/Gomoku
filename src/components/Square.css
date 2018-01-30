@@ -60,6 +60,10 @@
     box-shadow: 0 0 3px #f8285e;
 }
 
+.square.e-last-pos .circle{
+    border: 1px solid red;
+}
+
 @keyframes breath {
     0% {
         opacity: 1;

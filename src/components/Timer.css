@@ -1,0 +1,31 @@
+.timer {
+    position: absolute;
+    left: 50%;
+    top: 0.2rem;
+    transform: translateX(-50%);
+    width: 0.4rem;
+    height: 0.4rem;
+
+}
+
+.timer .time-text {
+    color: #444;
+    font-size: 0.2rem;
+    line-height: 0.4rem;
+    text-align: center;
+    animation: time-scale 1s ease infinite;
+    background: rgba(255, 255, 255, 1);
+    border-radius: 50%;
+}
+
+.timer.e-black .time-text {
+    color: #fff;
+    background: rgba(0, 0, 0, 1);
+    border-radius: 50%;
+}
+
+@keyframes time-scale {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}

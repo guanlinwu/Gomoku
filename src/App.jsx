@@ -1,41 +1,50 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import music from './combo.mp3';
+import failMusic from './fail.mp3';
+import successMusic from './success.mp3';
 import './App.css';
-import Square, { MoveSquare } from './components/Square';
+import { Square, MoveSquare } from './components/Square';
 import Modal from './components/Modal';
+import Timer from './components/Timer';
 import * as io from 'socket.io-client';
 
 // let socket = io('http://192.168.199.189:3002/');
-let socket = io('http://localhost:3002/');
+// let socket = io('http://localhost:3002/');
+let socket = process.env.NODE_ENV == 'production' ? io() : io('http://localhost:3002/');
 
 class App extends Component {
     constructor(props) {
         super(props)
         this.state = {
-            lineNum: 15,
-            isWin: false,
-            chessColor: 2,//1 代表白棋， 2 代表黑棋
-            isBalck: null, //是否是黑棋
+            lineNum    : 15,//行数
+            isWin      : false,//是否产生赢家，或者是否结束游戏
+            isBalck    : null, //是否是黑棋
             isBalckTurn: true,//是否轮到黑棋玩了
-            board: {},
-            translateX: 0,
-            translateY: 0
+            board      : {},//存储棋盘数据
+            translateX : 0,//移动棋子x位移值
+            translateY : 0,//移动棋子y位移值
+            lastPos    : null,//保存上一颗棋子的位置
+            member     : '旁观者'//身份
         };
-        this.startX = this.startY =
-        this.endX =  this.endY =
-        this.squaresW = this.squaresH =
+        this.timmerCom = null;
+
+        this.startX         = this.startY =
+        this.endX           = this.endY   =
+        this.squaresWH      =
         this.lastTranslateX = this.lastTranslateY = 0;
 
-        this.play = this.play.bind(this);
-        this.playChess = this.playChess.bind(this);
-        this.getPosDec = this.getPosDec.bind(this);
-        this.checkWinner = this.checkWinner.bind(this);
-        this.setChess = this.setChess.bind(this);
-        this.reStart = this.reStart.bind(this);
-        this.touchStart = this.touchStart.bind(this);
-        this.touchMove = this.touchMove.bind(this);
-        this.touchEnd = this.touchEnd.bind(this);
+        this.handlePlay       = this.handlePlay.bind(this);
+        this.getPosDec        = this.getPosDec.bind(this);
+        this.stratTimer       = this.stratTimer.bind(this);
+        this.getCurChessColor = this.getCurChessColor.bind(this);
+        this.checkWinner      = this.checkWinner.bind(this);
+        this.setChess         = this.setChess.bind(this);
+        this.reStart          = this.reStart.bind(this);
+        this.touchStart       = this.touchStart.bind(this);
+        this.touchMove        = this.touchMove.bind(this);
+        this.touchEnd         = this.touchEnd.bind(this);
+
     }
 
     componentWillMount() {
@@ -43,105 +52,166 @@ class App extends Component {
         socket.on('role',  (data) => {
             console.log('role ', data)
             if (data.isBalck !== null) {
+                /**
+                 * 如果是黑棋或者白棋玩家
+                 */
+                let member = data.isBalck ? '黑棋': '白棋';
                 this.setState({
-                    isBalck: data.isBalck,
+                    isBalck    : data.isBalck,
                     isBalckTurn: data.isBalckTurn,
-                    board: data.board
+                    board      : data.board || {},
+                    member     : member
                 });
+
+                if (data.isBalck !== null) {
+                    this.stratTimer(data.timestamp);
+                }
             }
-        }).on('restart', () => {
+        }).on('restart', (data) => {
             this.setState(
                 {
-                    lineNum: 15,
-                    isWin: false,
-                    chessColor: 2,//1 代表白棋， 2 代表黑棋
+                    lineNum    : 15,//行数
+                    isWin      : false,//是否产生赢家，或者是否结束游戏
                     isBalckTurn: true,//是否轮到黑棋玩了
-                    board: {},
-                    translateX: 0,
-                    translateY: 0
+                    board      : {},//存储棋盘数据
+                    lastPos    : null,//保存上一颗棋子的位置
+                    translateX : 0,//移动棋子x位移值
+                    translateY : 0//移动棋子y位移值
                 }
             );
-        })
+            this.stratTimer(data.timestamp);
+        });
     }
 
     componentDidMount() {
-        this.moveSquareNode = document.querySelector('.square');
-        this.music = document.getElementById('music');
-        this.squaresW = this.moveSquareNode.offsetWidth;//获取每次移动的单位距离
-        this.squaresH = this.moveSquareNode.offsetHeight;//获取每次移动的单位距离
-        this.maxW = this.moveSquareNode.offsetWidth * (this.state.lineNum - 1);
-        this.maxH = this.moveSquareNode.offsetWidth * (this.state.lineNum - 1);
+        let moveSquareNode = document.querySelector('.square');
+        this.music         = document.getElementById('music');
+        this.squaresWH     = moveSquareNode.offsetWidth;//获取每次移动的单位距离
+        this.maxWH         = moveSquareNode.offsetWidth * (this.state.lineNum - 1);
+
         socket.on('play chess', (data) => {
             console.log('play chess ', data)
-            this.setChess(data.x, data.y, data.chessColor);
-        })
+            data.x && data.y && this.setChess(data.x, data.y);
+            this.state.isBalck !== null && this.stratTimer(data.timestamp);
+        });
+
+        socket.on('rushtime', (data) => {
+            console.log('timeout ', data)
+            this.setState({
+                isBalckTurn: data.isBalckTurn
+            });
+            this.state.isBalck !== null && this.stratTimer(data.timestamp);
+        });
     }
 
-    getPosDec(x, y) {
-        return `${x}-${y}`;
+    stratTimer(nowTimeStamp) {
+        this.timmerCom.startTimeStamp(nowTimeStamp).then(() => {
+            console.log('超时')
+            /**
+             * 如果超时了，则切换棋方
+             */
+            socket.emit('rushtime', {
+                isBalckTurn: !this.state.isBalckTurn,//给服务器保存
+                timestamp: new Date().getTime()
+            });
+        });
     }
-
-    play() {
-        let x = this.lastTranslateX / this.squaresW,
-            y = this.lastTranslateY / this.squaresH,
-            chessColor = this.state.board[this.getPosDec(x, y)];
-        if (!this.state.isWin && !chessColor) {
-            this.playChess(x, y);
-
-            this.lastTranslateX =0;
-            this.lastTranslateY =0;
-
-        }
-    }
-
     /**
-     * 在棋盘下下黑白棋
+     * 根据坐标获取棋盘的棋子颜色
      *
      * @param {any} x
      * @param {any} y
+     * @returns
      * @memberof App
      */
-    playChess(x, y) {
+    getPosDec(x, y) {
+        return `${x}-${y}`;
+    }
+    /**
+     * 落棋事件
+     *
+     * @memberof App
+     */
+    handlePlay() {
         if (this.state.isBalck === null) {
             console.log('你是旁观者')
             return;
         }
-        if (this.state.isBalck == this.state.isBalckTurn) {
-            this.music.play();
-            let board = { ...this.state.board },
-                posDec = this.getPosDec(x, y);
 
-            board[posDec] = this.state.chessColor;
-            socket.emit('play chess', {
-                x,
-                y,
-                isBalckTurn: !this.state.isBalckTurn,
-                chessColor: this.state.chessColor,
-                board: { ...board }
-            })
+        let x = this.lastTranslateX / this.squaresWH,
+            y = this.lastTranslateY / this.squaresWH,
+            { board, isWin, isBalck, isBalckTurn } = this.state,
+            posDec = this.getPosDec(x, y);
+        if (!isWin && !board[posDec]) {
+            /**
+             * 如果游戏没有结束，而且改位置没有下棋，在棋盘下下黑白棋，传递数据给服务器
+             */
+            if (isBalck == isBalckTurn) {
+                this.music.play().then(()=>{});
+                let _board = { ...board },
+                    curChessColor = this.getCurChessColor(isBalckTurn);
+
+                _board[posDec] = curChessColor;
+
+                socket.emit('play chess', {
+                    x,
+                    y,
+                    timestamp: new Date().getTime(),
+                    isBalckTurn: !this.state.isBalckTurn,//给服务器保存
+                    board: { ..._board }//给服务器保存
+                });
+                this.timmerCom.clear();
+            }
         }
     }
+    /**
+     * 获取当前所下棋子颜色
+     *
+     * @param {any} isBalckTurn
+     * @returns
+     * @memberof App
+     */
+    getCurChessColor(isBalckTurn) {
+        let _isBalckTurn = isBalckTurn || this.state.isBalckTurn;
+        return _isBalckTurn ? 2 : 1;//1 代表白棋， 2 代表黑棋
+    }
+    /**
+     * 在棋盘下下黑白棋，跟服务器返回的数据设置棋子颜色
+     *
+     * @param {any} x
+     * @param {any} y
+     * @param {any} chessColor
+     * @memberof App
+     */
+    setChess(x, y) {
+        let { isBalckTurn, board } = this.state,
+            _board = { ...board },
+            posDec = this.getPosDec(x, y),
+            curChessColor = this.getCurChessColor(isBalckTurn);
 
-    setChess(x, y, chessColor) {
-        let board = { ...this.state.board },
-            posDec = this.getPosDec(x, y);
-
-        board[posDec] = chessColor;
+        _board[posDec] = curChessColor;
 
         this.setState({
-            chessColor: 3 - this.state.chessColor,
-            isBalckTurn: !this.state.isBalckTurn,
-            board: { ...board },
+            isBalckTurn: !isBalckTurn,
+            board: { ..._board },
             translateX: 0,
-            translateY: 0
+            translateY: 0,
+            lastPos: {
+                x,
+                y
+            }
         });
 
-        let winner = this.checkWinner(x, y, board);
+        this.lastTranslateX = 0;
+        this.lastTranslateY = 0;
+
+        let winner = this.checkWinner(x, y, _board);
         if (winner) {
             setTimeout(()=> {
                 this.setState({
                     isWin: winner
                 });
+                this.timmerCom.clear();
             }, 500);
         }
     }
@@ -209,10 +279,15 @@ class App extends Component {
 
         return false;
     }
-
+    /**
+     * 重置数据
+     *
+     * @memberof App
+     */
     reStart() {
-        socket.emit('restart', { 'restartTime': new Date().getTime().toString() });
+        let restartTime = new Date().getTime();
         if (this.state.isWin) {
+            socket.emit('restart', { 'restartTime': restartTime.toString()});
         }
     }
 
@@ -229,7 +304,6 @@ class App extends Component {
     touchMove(e) {
         e.preventDefault();
         if (this.state.isBalck == null || this.state.isBalck != this.state.isBalckTurn) return;
-        console.log(e)
         let targetTouches = e.targetTouches[0],
             _translateX = this.lastTranslateX,
             _translateY = this.lastTranslateY,
@@ -239,21 +313,19 @@ class App extends Component {
         this.endY = targetTouches.clientY || targetTouches.pageY;
         dx = this.endX - this.startX;
         dy = this.endY - this.startY;
-        let rawDx = _translateX + dx;
-        rawDx = Math.ceil(rawDx * 1 / this.squaresW) * this.squaresW;
-        (rawDx > this.maxW) && (rawDx = this.maxW);
-        rawDx < 0 && (rawDx = 0);
+        let rawDx = _translateX + dx,
+            rawDy = _translateY + dy;
+        rawDx = Math.ceil(rawDx * 1 / this.squaresWH) * this.squaresWH;
+        rawDx = Math.min(this.maxWH, rawDx);
+        rawDx = Math.max(0, rawDx);
+        rawDy = Math.ceil(rawDy * 1 / this.squaresWH) * this.squaresWH;
+        rawDy = Math.min(this.maxWH, rawDy);
+        rawDy = Math.max(0, rawDy);
+
         this.setState({
-            translateX: rawDx
-        });
-        let rawDy = _translateY + dy;
-        rawDy = Math.ceil(rawDy * 1 / this.squaresH) * this.squaresH;
-        (rawDy > this.maxH) && (rawDy = this.maxH);
-        rawDy < 0 && (rawDy = 0);
-        this.setState({
+            translateX: rawDx,
             translateY: rawDy
         });
-        console.log(rawDx, rawDy)
     }
 
     touchEnd(e) {
@@ -265,46 +337,52 @@ class App extends Component {
     }
 
     render() {
-        let { lineNum, board, isWin, isBalck, isBalckTurn, translateX, translateY } = this.state;
+        let { lineNum, board, isWin, isBalck, member, isBalckTurn, translateX, translateY, lastPos } = this.state;
         let squares = [],
-        member = '';
-        switch (isBalck) {
-            case true:
-                member = '黑棋';
-                break;
-            case false:
-                member = '白棋';
-                break;
-            default:
-                member = '旁观者';
-                break;
-        }
+            isYourTurn = isBalck !== null && isBalck == isBalckTurn;
         for (let y = 0; y < lineNum; y++) {
             for (let x = 0; x < lineNum; x++) {
-                squares.push(<Square chessColor={board[this.getPosDec(x, y)]} key={`square-${x}-${y}`} />);
+                squares.push(<Square isLastPos={lastPos && (lastPos.x == x && lastPos.y == y)} chessColor={board[this.getPosDec(x, y)]} key={`square-${x}-${y}`} />);
+            }
+        }
+        if (isWin) {
+            if ((isWin == 2 && isBalck) || (isWin == 1 && !isBalck)) {
+                let successMusic = document.getElementById('success');
+                successMusic.play();
+            } else {
+                let failMusic = document.getElementById('fail');
+                failMusic.play();
             }
         }
         return (
             <div className="App">
                 <header className="App-header">
-                    <img src={logo} className="App-logo" alt="logo" />
-                    <p className="text">
-                        身份: {member}
-                        <br/>
-                        轮到: {isBalckTurn ? '黑棋' : '白棋'}
-                    </p>
+                    <div className="basic">
+                        <div className="basic-item">
+                            <span>Your Color</span>
+                            <span className={isBalck ? 'little-cicle e-black' : 'little-cicle'}></span>
+                        </div>
+                        <div className="basic-item">
+                            <span>Turn Color</span>
+                            <span className={isBalckTurn ? 'little-cicle e-black' : 'little-cicle'}></span>
+                        </div>
+                    </div>
+                    <Timer isBalckTurn={isBalckTurn} ref={el => this.timmerCom = el} />
                 </header>
                 <div className="chess" onTouchStart={this.touchStart} onTouchMove={this.touchMove} onTouchEnd={this.touchEnd}>
                     {squares}
-                    {isBalck !== null && isBalck == isBalckTurn && <MoveSquare  chessColor={isBalck? 2 : 1} translateX={translateX} translateY={translateY}/>}
+                    {isYourTurn && <MoveSquare  chessColor={isBalck? 2 : 1} translateX={translateX} translateY={translateY}/>}
                 </div>
                 <div className="btn-box">
-                    <a className="btn" style={this.state.isWin ? {} : { background: '#ccc', color: '#eee', boxShadow: 'none'}} href="javascript:;" onClick={this.reStart}>重新开始</a>
-                    <a className="btn" href="javascript:;" onClick={this.play}>落棋</a>
+                    <a className={isWin ? 'btn' : 'btn disable'} href="javascript:;" onClick={this.reStart}>Restart</a>
+                    <a className={isYourTurn ? 'btn' : 'btn disable'} href="javascript:;" onClick={this.handlePlay}>Play</a>
                     {/* <a className="btn" href="javascript:;" >悔棋</a> */}
                 </div>
-                <audio id="music" src={music} hidden></audio>
-                <Modal isWin={this.state.isWin} isBalck={this.state.isBalck}/>
+                <audio id="music" src={music} preload="true" hidden></audio>
+                <audio id="fail" src={failMusic} preload="true" hidden></audio>
+                <audio id="success" src={successMusic} preload="true" hidden></audio>
+                {/* <audio id="success" src={music} hidden></audio> */}
+                <Modal isWin={isWin} isBalck={isBalck}/>
             </div>
         );
     }

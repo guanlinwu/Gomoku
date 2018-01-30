@@ -7,32 +7,41 @@ html, body {
 .App {
     margin: 0 auto;
     text-align: center;
-  background-color: #ffabcd;
-}
-
-.App-logo {
-  animation: App-logo-spin infinite 20s linear;
-  height: 80px;
+    background-color: #ffabcd;
 }
 
 .App-header {
     position: relative;
     padding: 0.1rem;
+    height: 0.9rem;
+    background: linear-gradient(#f8285e, #ffabcd);
 }
 
-.App-header .text {
-    position: absolute;
-    top: 0.2rem;
-    left: 0.1rem;
-    color: #f8285e;
+.basic {
+    color: #fff;
     font-size: 0.16rem;
-    line-height: 0.2rem;
+    line-height: 0.3rem;
     text-align: left;
 }
 
-@keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.basic-item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.basic .little-cicle {
+    flex: 0 0 18px;
+    height: 18px;
+    margin: 0 0.1rem;
+    background: #fff;
+    box-shadow: 0 0 3px #ccc, 0 -2px 2px #eee inset;
+    border-radius: 50%;
+}
+
+.basic .little-cicle.e-black {
+    background: #444;
+    box-shadow: 0 0 2px #444, 0 -2px 2px #000 inset;
 }
 
 .chess {
@@ -76,8 +85,26 @@ html, body {
     text-align: center;
     line-height: 0.4rem;
     font-size: 0.16rem;
-    color: red;
+    color: #f8285e;
     background: #fff;
     border-radius: 4px;
     box-shadow: 0 0 4px #f8285e;
+    pointer-events: auto;
+}
+
+.btn:active {
+    color: #fff;
+    background: #f8285e;
+}
+
+.btn.disable {
+    /* pointer-events: none; */
+    background: #aaa;
+    color: #eee;
+    box-shadow: none;
+}
+
+.btn.disable:active {
+    background: #ccc;
+    color: #eee;
 }
